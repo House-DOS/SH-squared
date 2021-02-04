@@ -73,7 +73,7 @@ main:
     mov bx, 0x0000                      ; Start at the beginning
     int 0x7E
 
-    jmp .handler                        ; Proceed
+    jmp .param                          ; Proceed
 
 .no_params:
     mov ax, 0x8020                      ; Get string length
@@ -86,6 +86,16 @@ main:
     mov ax, 0x8002                      ; Copy string
     mov si, command_buffer              ; Our command
     mov di, command_name                ; Our buffer
+    int 0x7E
+
+.param:
+    mov ax, 0x8040                      ; Replace characters in string
+    mov si, command_buffer              ; Source is command input
+    add si, cx                          ; Start at first space
+    inc si                              ; Avoid an O.B.O.E
+    mov di, params                      ; Desination is parameters
+    mov dh, 0x20                        ; Search for spaces
+    mov dl, 0x2C                        ; Replace with commas
     int 0x7E
 
 .handler:
@@ -158,3 +168,6 @@ usage           db "SH2", 0x0A
                 db "Flags: none", 0x00
 
 command_buffer:
+times 0x0080    db 0x00
+
+params:
