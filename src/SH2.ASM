@@ -110,6 +110,18 @@ main:
     int 0x7E
     je cmd.beep
 
+    mov di, cmd_cp                      ; CP
+    int 0x7E
+    je cmd.cp
+
+    mov di, cmd_rm                      ; RM
+    int 0x7E
+    je cmd.rm
+
+    mov di, cmd_mv                      ; MV
+    int 0x7E
+    je cmd.mv
+
 .bad:
     mov ah, 0x02                        ; Print line
     mov si, invalid                     ; Invalid command line
@@ -139,13 +151,101 @@ cmd:                                    ; The commands
 
     jmp main.command                    ; We're done!
 
+.cp:
+    mov cx, 0x0000                      ; First parameter
+    mov di, buffer                      ; Buffer space
+    call get_param                      ; Get this parameter
+
+    jc main.bad                         ; Invalid command if no parameter
+
+    mov ah, 0x60                        ; Verify file
+    mov si, buffer                      ; Our filename
+    int 0x7E
+
+    jc main.command                     ; Exit if file not found
+
+    mov ax, 0x4020                      ; Output file
+    int 0x7E
+
+    jc main.command                     ; Exit if error
+
+    mov cx, 0x0001                      ; Second parameter
+    mov di, buffer                      ; Buffer space
+    call get_param                      ; Get this parameter
+
+    jc main.bad                         ; Invalid command if no parameter
+
+    mov ah, 0x4F                        ; Output to file
+    mov si, buffer                      ; New filename
+    int 0x7E
+
+    jmp main.command                    ; We're done!
+
+.rm:
+    mov cx, 0x0000                      ; First parameter
+    mov di, buffer                      ; Buffer space
+    call get_param                      ; Get this parameter
+
+    jc main.bad                         ; Invalid command if no parameter
+
+    mov ah, 0x60                        ; Verify file
+    mov si, buffer                      ; Our filename
+    int 0x7E
+
+    jc main.command                     ; Exit if file not found
+
+    mov ah, 0x79                        ; Delete a file
+    int 0x7E
+
+    jmp main.command                    ; We're done!
+
+.mv:
+    mov cx, 0x0000                      ; First parameter
+    mov di, buffer                      ; Buffer space
+    call get_param                      ; Get this parameter
+
+    jc main.bad                         ; Invalid command if no parameter
+
+    mov ah, 0x60                        ; Verify file
+    mov si, buffer                      ; Our filename
+    int 0x7E
+
+    jc main.command                     ; Exit if file not found
+
+    mov cx, 0x0001                      ; Second parameter
+    mov di, buffer                      ; Buffer space
+    call get_param                      ; Get this parameter
+
+    jc main.bad                         ; Invalid command if no parameter
+
+    mov ah, 0x78                        ; Rename file
+    mov si, buffer                      ; Our filename
+    int 0x7E
+
+    jmp main.command                    ; We're done!
+
+
+; ========================================================================
+; Subroutines
+; ========================================================================
+
+get_param:                              ; Gets parameter with number CX and places it in DI
+    pusha                               ; Save register states to stack
+
+    mov ax, 0x8100                      ; Get item from list
+    mov si, params                      ; Parameter list
+    int 0x7E
+
+    popa                                ; Restore register states
+    ret                                 ; Return to caller
+
 
 data:
 
 prompt          db 0x20, 0xE4, 0x20, 0x00
 
 start_lines     db "The Superior House-DOS Shell", 0x0A
-                db "SH", 0xFD, 0x20, "v0.0", 0x0A
+                db "SH", 0xFD, 0x20, "v0.1", 0x0A
                 db "By Derrick and Jacob", 0x00
 
 invalid         db "Invalid command given.", 0x00
@@ -156,6 +256,9 @@ command_name    dq 0x0000000000000000
 
 cmd_exit        db "EXIT", 0x00
 cmd_beep        db "BEEP", 0x00
+cmd_cp          db "CP", 0x00
+cmd_rm          db "RM", 0x00
+cmd_mv          db "MV", 0x00
 
 space           db " ", 0x00
 
@@ -171,3 +274,6 @@ command_buffer:
 times 0x0080    db 0x00
 
 params:
+times 0x0080    db 0x00
+
+buffer:
